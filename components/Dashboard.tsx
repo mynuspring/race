@@ -197,7 +197,7 @@ export default function Dashboard(p: Props) {
         <table className="w-full text-sm">
           <thead className="text-xs uppercase text-gray-500">
             <tr><Th right={false}>Period</Th><Th>Sales</Th><Th>New sales</Th><Th>Repeat sales</Th><Th>Orders</Th><Th>New enq.</Th><Th>All enq.</Th><Th>Spend</Th>
-              <Th>Cost / new enq.</Th><Th>Cost / lead (AM)</Th><Th>New conv.</Th><Th>Repeat conv.</Th><Th>ROAS</Th><Th>Total ROAS</Th><Th>CPA</Th><Th>AOV</Th></tr>
+              <Th>Cost / new enq.</Th><Th>Cost / lead (Ads Mgr)</Th><Th>New conv.</Th><Th>Repeat conv.</Th><Th>ROAS</Th><Th>Total ROAS</Th><Th>CPA</Th><Th>AOV</Th></tr>
           </thead>
           <tbody>
             {rows.map((r) => (
@@ -225,7 +225,7 @@ export default function Dashboard(p: Props) {
         <section className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
           <h2 className="px-4 pt-3 font-semibold">By ad account</h2>
           <table className="w-full text-sm">
-            <thead className="text-xs uppercase text-gray-500"><tr><Th right={false}>Account</Th><Th>Spend</Th><Th>New enq.</Th><Th>Cost / new enq.</Th><Th>AM leads</Th><Th>Cost / lead (AM)</Th><Th>New sales</Th><Th>New ROAS</Th><Th>ROAS</Th></tr></thead>
+            <thead className="text-xs uppercase text-gray-500"><tr><Th right={false}>Account</Th><Th>Spend</Th><Th>New enq.</Th><Th>Cost / new enq.</Th><Th>Ads Manager leads</Th><Th>Cost / lead (Ads Mgr)</Th><Th>New sales</Th><Th>New ROAS</Th><Th>ROAS</Th></tr></thead>
             <tbody>
               {p.adAccounts.filter((a) => !p.acct || a.id === p.acct).map((a) => {
                 const m = computeMetrics(cur.s, cur.a, p.channels, { adAccountIds: new Set([a.id]), channelIds: new Set(p.channels.filter((c) => c.ad_account_id === a.id).map((c) => c.id)) });

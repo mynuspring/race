@@ -1,8 +1,10 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { addDays, todayMY, type Channel } from "@/lib/metrics";
-import { rm } from "@/lib/format";
+import { addDays, monthEnd, monthStart, todayMY, type Channel } from "@/lib/metrics";
+import { rm, shortDate } from "@/lib/format";
+
+type DayTotal = { date: string; sales: number; orders: number; enquiries: number };
 
 const FIELDS = [
   { key: "new_sales", label: "New customer sales (RM)", money: true, chatOnly: false },
@@ -23,6 +25,7 @@ export default function SalesEntryForm({ channels, userId }: { channels: Channel
   const [values, setValues] = useState<Values>({});
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [hist, setHist] = useState<DayTotal[]>([]);
   const sb = createClient();
 
   const load = useCallback(async () => {
@@ -35,6 +38,15 @@ export default function SalesEntryForm({ channels, userId }: { channels: Channel
       v[r.channel_id] = Object.fromEntries(FIELDS.map((f) => [f.key, r[f.key] ? String(Number(r[f.key])) : ""])) as Record<Key, string>;
     }
     setValues(v);
+    const { data: h } = await sb.from("sales_entries").select("*").eq("user_id", userId)
+      .gte("entry_date", monthStart(date)).lte("entry_date", monthEnd(date));
+    const by = new Map<string, DayTotal>();
+    for (const r of h ?? []) {
+      const t = by.get(r.entry_date) ?? { date: r.entry_date, sales: 0, orders: 0, enquiries: 0 };
+      t.sales += Number(r.new_sales) + Number(r.repeat_sales); t.orders += r.new_orders + r.repeat_orders; t.enquiries += r.new_enquiries + r.existing_enquiries;
+      by.set(r.entry_date, t);
+    }
+    setHist([...by.values()].sort((a, b) => b.date.localeCompare(a.date)));
   }, [date, userId, channels]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load(); }, [load]);
@@ -64,7 +76,8 @@ export default function SalesEntryForm({ channels, userId }: { channels: Channel
     const { error } = await sb.from("sales_entries").upsert(rows, { onConflict: "entry_date,channel_id,user_id" });
     setBusy(false);
     if (error) setStatus(`Not saved: ${error.message}`);
-    else setStatus(slip ? "Saved. Note: one channel has sales but 0 orders, please double-check." : "Saved.");
+    if (!error) load();
+    if (!error) setStatus(slip ? "Saved. Note: one channel has sales but 0 orders, please double-check." : "Saved.");
   }
 
   const total = (k: Key) => channels.reduce((s, c) => s + (Number(values[c.id]?.[k]) || 0), 0);
@@ -118,7 +131,23 @@ export default function SalesEntryForm({ channels, userId }: { channels: Channel
         </button>
         {status && <span className="text-sm text-gray-700">{status}</span>}
       </div>
-      <p className="text-xs text-gray-500">New = first-time customer. Enquiries = chats received that day. Shopee and website: enter that day&apos;s total sales.</p>
+      <p className="text-xs text-gray-500">New = first-time customer. Enquiries = chats received that day. Shopee and website: enter that day&apos;s total sales. Ad spend and Ads Manager leads go in the <a href="/entry/ads" className="text-brand-700 underline">Enter ads</a> tab.</p>
+      <section className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+        <h2 className="px-4 pt-3 font-semibold">My entries this month</h2>
+        <p className="px-4 text-xs text-gray-500">Click a day to view or change it.</p>
+        <table className="w-full text-sm">
+          <thead className="text-xs uppercase text-gray-500"><tr><th className="px-3 py-2 text-left">Date</th><th className="px-3 py-2 text-right">Sales</th><th className="px-3 py-2 text-right">Orders</th><th className="px-3 py-2 text-right">Enquiries</th></tr></thead>
+          <tbody>
+            {hist.map((h) => (
+              <tr key={h.date} onClick={() => setDate(h.date)} className={`cursor-pointer border-t border-gray-100 hover:bg-brand-50 ${h.date === date ? "bg-brand-50" : ""}`}>
+                <td className="px-3 py-1.5">{shortDate(h.date)}</td><td className="px-3 py-1.5 text-right num">{rm(h.sales, 2)}</td>
+                <td className="px-3 py-1.5 text-right num">{h.orders}</td><td className="px-3 py-1.5 text-right num">{h.enquiries}</td>
+              </tr>
+            ))}
+            {hist.length === 0 && <tr><td className="px-3 py-3 text-gray-400" colSpan={4}>Nothing entered for this month yet.</td></tr>}
+          </tbody>
+        </table>
+      </section>
     </div>
   );
 }
