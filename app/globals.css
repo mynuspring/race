@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #eef8f1;
+  --color-brand-100: #d5eedd;
+  --color-brand-500: #2f9e5a;
+  --color-brand-600: #23824a;
+  --color-brand-700: #1c683c;
+  --color-ink: #1f2a24;
+}
+
+body { background: #f6f7f6; color: var(--color-ink); }
+input[type="number"] { font-variant-numeric: tabular-nums; }
+.num { font-variant-numeric: tabular-nums; }
